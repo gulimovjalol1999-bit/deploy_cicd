@@ -17,45 +17,45 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa 
+          chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
         shell: bash
 
       - name: Deploy to server
         env:
-          HOST: ${{ secrets.HOST  }}
+          HOST: ${{ secrets.HOST }}
           USER: ${{ secrets.USERNAME }}
           APP_DIR: /ci_cd
           PORT: ${{ secrets.PORT }}
+
         run: |
-          ssh $USER@$HOST << EOF
-            set -e
+          ssh $USER@$HOST << 'EOF'
+          set -e
 
-            if [ ! -d "$APP_DIR" ]; then
-              mkdir -p "$APP_DIR"
-              git clone https://github.com/gulimovjalol1999-bit/deploy_cicd.git "$APP_DIR"
-            fi
+          if [ ! -d "$APP_DIR" ]; then
+            mkdir -p "$APP_DIR"
+            git clone https://github.com/gulimovjalol1999-bit/deploy_cicd.git "$APP_DIR"
+          fi
 
-            cd "$APP_DIR"
+          cd "$APP_DIR"
 
-            if [ ! -d .git ]; then 
-              echo "Repo not cloned properly. Aborting."
-              exit1
-            fi
-        
-            git pull origin main
+          if [ ! -d .git ]; then
+            echo "Repo not cloned properly. Aborting."
+            exit 1
+          fi
 
-            echo "PORT=$PORT" > .env
-            npm install 
-            npm run build
+          git pull origin main
 
-            if pm2 list | grep -q "ci_cd_app"; then
-              pm2 restart ci_cd_app
-            else
-              pm2 start dist/main.js --name ci_cd_app 
-            fi
+          echo "PORT=$PORT" > .env
 
-            pm2 save
-          EOF 
+          npm ci
+          npm run build
 
-          
+          if pm2 list | grep -q "ci_cd_app"; then
+            pm2 restart ci_cd_app
+          else
+            pm2 start dist/main.js --name ci_cd_app
+          fi
+
+          pm2 save
+EOF
