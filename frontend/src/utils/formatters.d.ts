@@ -1,0 +1,10 @@
+import type { BookingStatus, PaymentStatus } from '../types';
+export declare function formatDate(date: string): string;
+export declare function formatDateTime(date: string): string;
+export declare function formatCurrency(amount: number): string;
+export declare function formatTime(time: string): string;
+export declare const BOOKING_STATUS_LABELS: Record<BookingStatus, string>;
+export declare const BOOKING_STATUS_COLORS: Record<BookingStatus, string>;
+export declare const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string>;
+export declare const PAYMENT_STATUS_COLORS: Record<PaymentStatus, string>;
+export declare const CANCELLATION_REASON_LABELS: Record<string, string>;
