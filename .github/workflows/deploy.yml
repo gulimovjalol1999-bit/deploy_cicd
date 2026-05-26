@@ -19,43 +19,50 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
-        shell: bash
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          NODE_ENV=production
+          PORT=${{ secrets.PORT }}
+          CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_PORT=${{ secrets.DB_PORT }}
+          DB_USERNAME=${{ secrets.DB_USERNAME }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN }}
+          JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
+          JWT_REFRESH_EXPIRES_IN=${{ secrets.JWT_REFRESH_EXPIRES_IN }}
+          SUPERADMIN_PASSWORD=${{ secrets.SUPERADMIN_PASSWORD }}
+          EOF
 
       - name: Deploy to server
         env:
           HOST: ${{ secrets.HOST }}
           USER: ${{ secrets.USERNAME }}
           APP_DIR: /ci_cd
-          PORT: ${{ secrets.PORT }}
 
         run: |
-          ssh $USER@$HOST << EOF
-          set -e
-
-          if [ ! -d "$APP_DIR" ]; then
-            mkdir -p "$APP_DIR"
-            git clone https://github.com/gulimovjalol1999-bit/deploy_cicd.git "$APP_DIR"
-          fi
-
-          cd "$APP_DIR"
-
-          if [ ! -d .git ]; then
-            echo "Repo not cloned properly. Aborting."
-            exit 1
-          fi
-
-          git pull origin main
-
-          echo "PORT=$PORT" > .env
-
-          npm ci
-          npm run build
-
-          if pm2 list | grep -q "ci_cd_app"; then
-            pm2 restart ci_cd_app
-          else
-            pm2 start dist/main.js --name ci_cd_app
-          fi
-
-          pm2 save
-          EOF
+          ssh $USER@$HOST "
+            set -e
+            if [ ! -d $APP_DIR ]; then
+              mkdir -p $APP_DIR
+              git clone https://github.com/gulimovjalol1999-bit/deploy_cicd.git $APP_DIR
+            fi
+            cd $APP_DIR
+            git pull origin main
+            npm ci
+            npm run build
+          "
+          scp .env $USER@$HOST:$APP_DIR/.env
+          ssh $USER@$HOST "
+            cd $APP_DIR
+            if pm2 list | grep -q 'ci_cd_app'; then
+              pm2 restart ci_cd_app
+            else
+              pm2 start dist/main.js --name ci_cd_app
+            fi
+            pm2 save
+          "
