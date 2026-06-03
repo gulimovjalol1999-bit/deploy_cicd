@@ -7,18 +7,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.use(
-    helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: [`'self'`],
-          styleSrc: [`'self'`, `'unsafe-inline'`],
-          scriptSrc: [`'self'`, `'unsafe-inline'`],
-          imgSrc: [`'self'`, 'data:', 'https:'],
-        },
-      },
-    }),
-  );
+  app.use(helmet({ contentSecurityPolicy: false, hsts: false }));
 
   app.setGlobalPrefix('api/v1');
 
