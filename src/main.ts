@@ -1,13 +1,24 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import helmet from 'helmet';
+// import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.use(helmet({ contentSecurityPolicy: false, hsts: false }));
+  // app.use(
+  //   helmet({
+  //     contentSecurityPolicy: {
+  //       directives: {
+  //         defaultSrc: [`'self'`],
+  //         styleSrc: [`'self'`, `'unsafe-inline'`],
+  //         scriptSrc: [`'self'`, `'unsafe-inline'`],
+  //         imgSrc: [`'self'`, 'data:', 'https:'],
+  //       },
+  //     },
+  //   }),
+  // );
 
   app.setGlobalPrefix('api/v1');
 
