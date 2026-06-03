@@ -52,8 +52,9 @@ jobs:
             fi
             cd $APP_DIR
             git pull origin main
-            npm ci --omit=dev --prefer-offline
+            npm ci
             npm run build
+            npm prune --omit=dev
           SSHEOF
 
       - name: Upload .env to VPS
