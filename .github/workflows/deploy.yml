@@ -20,9 +20,9 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
 
-      - name: Create .env file
+      - name: Create .env file locally
         run: |
-          cat > .env << EOF
+          cat > .env << 'ENVEOF'
           NODE_ENV=production
           PORT=${{ secrets.PORT }}
           CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
@@ -36,33 +36,58 @@ jobs:
           JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
           JWT_REFRESH_EXPIRES_IN=${{ secrets.JWT_REFRESH_EXPIRES_IN }}
           SUPERADMIN_PASSWORD=${{ secrets.SUPERADMIN_PASSWORD }}
-          EOF
+          ENVEOF
 
-      - name: Deploy to server
+      - name: Pull code and install on VPS
         env:
           HOST: ${{ secrets.HOST }}
           USER: ${{ secrets.USERNAME }}
           APP_DIR: /ci_cd
-
         run: |
-          ssh $USER@$HOST "
+          ssh $USER@$HOST << SSHEOF
             set -e
-            if [ ! -d $APP_DIR ]; then
+            if [ ! -d "$APP_DIR/.git" ]; then
               mkdir -p $APP_DIR
               git clone https://github.com/gulimovjalol1999-bit/deploy_cicd.git $APP_DIR
             fi
             cd $APP_DIR
             git pull origin main
-            npm ci
+            npm ci --omit=dev --prefer-offline
             npm run build
-          "
-          scp .env $USER@$HOST:$APP_DIR/.env
-          ssh $USER@$HOST "
-            cd $APP_DIR
-            if pm2 list | grep -q 'ci_cd_app'; then
+          SSHEOF
+
+      - name: Upload .env to VPS
+        env:
+          HOST: ${{ secrets.HOST }}
+          USER: ${{ secrets.USERNAME }}
+        run: |
+          scp .env $USER@$HOST:/ci_cd/.env
+
+      - name: Run seed (first-time superadmin setup)
+        env:
+          HOST: ${{ secrets.HOST }}
+          USER: ${{ secrets.USERNAME }}
+        run: |
+          ssh $USER@$HOST << SSHEOF
+            set -e
+            cd /ci_cd
+            npm run seed || echo "Seed skipped (already run or error)"
+          SSHEOF
+
+      - name: Restart app with PM2
+        env:
+          HOST: ${{ secrets.HOST }}
+          USER: ${{ secrets.USERNAME }}
+        run: |
+          ssh $USER@$HOST << SSHEOF
+            set -e
+            cd /ci_cd
+            if pm2 list | grep -q "ci_cd_app"; then
               pm2 restart ci_cd_app
             else
               pm2 start dist/main.js --name ci_cd_app
             fi
             pm2 save
-          "
+            echo "✅ App deployed successfully"
+            pm2 show ci_cd_app
+          SSHEOF
