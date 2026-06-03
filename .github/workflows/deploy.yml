@@ -55,6 +55,9 @@ jobs:
             npm ci
             npm run build
             npm prune --omit=dev
+            cd $APP_DIR/frontend
+            npm ci
+            npm run build
           SSHEOF
 
       - name: Upload .env to VPS
